@@ -1,32 +1,502 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成材率智能优化与决策系统 (交互式方案)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Harmony -->
+    <!-- Application Structure Plan: The SPA is designed with a top-down narrative structure to guide the client through the proposal logically. It starts with a high-level "Dashboard" to establish the massive financial incentive. It then moves to a detailed, interactive demo of "Phase 1: Visual Optimization", allowing the user to actively engage with the core features. Finally, it presents "Phase 2: AI Agent", simulating the future vision with an interactive chat. This structure transforms a static presentation into an experiential journey, making the value proposition tangible and compelling. -->
+    <!-- Visualization & Content Choices: 
+        1. Dashboard Stats (Goal: Inform/Persuade) -> Viz: Large HTML counters. Interaction: Animated numbers on load. Justification: Immediately highlights the key financial benefits (ROI) from the report to capture client interest.
+        2. Yield Rate Chart (Goal: Compare) -> Viz: Bar Chart (Chart.js). Interaction: Static. Justification: Provides a simple, universally understood visual of the potential for improvement.
+        3. Process Flow Diagram (Goal: Organize) -> Viz: HTML/Tailwind divs. Interaction: Hover effects on steps. Justification: Creates a clean, dependency-free visual representation of the production process described in the report.
+        4. Slitting Plan (Goal: Inform/Compare) -> Viz: Horizontal Stacked Bar Chart (Chart.js). Interaction: Dynamically updates when user modifies parameters, serving as the core interactive element of the demo. Justification: This is a creative use of a bar chart to simulate a physical slitting process, effectively visualizing material allocation without complex custom canvas drawing, thus keeping the prototype lightweight.
+        5. AI Chat Interface (Goal: Demonstrate Interaction) -> Viz: Styled HTML chat log. Interaction: Pre-scripted conversational flows triggered by user input/clicks. Justification: Perfectly simulates the proposed AI agent's capabilities (forward/reverse/what-if) in a controlled, high-fidelity manner, making the futuristic concept easy to grasp.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8f7f4; }
+        .tab-active { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff; }
+        .tab-inactive { border-color: transparent; color: #4b5563; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .ai-chat-bubble-user { background-color: #3b82f6; color: white; align-self: flex-end; }
+        .ai-chat-bubble-agent { background-color: #e5e7eb; color: #1f2937; align-self: flex-start; }
+        .param-input {
+            width: 100%; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #d1d5db;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .param-input:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4); }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 200px; /* Default height for mobile */
+            max-height: 250px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .flow-step {
+            display: flex; align-items: center; justify-content: center;
+            padding: 0.75rem 1.5rem; border-radius: 0.5rem;
+            background-color: white; border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            text-align: center; font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .flow-step:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #3b82f6; }
+        .flow-arrow {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #9ca3af;
+            margin: 0 0.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
-            </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
-            </div>
-        </main>
-    </body>
+    <div class="min-h-screen bg-[#f8f7f4] p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg ring-1 ring-gray-200">
+            <!-- Header -->
+            <header class="p-6 border-b border-gray-200">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">智造赋能，毫厘必争</h1>
+                <p class="mt-1 text-md text-gray-600">成材率智能优化与决策系统 (交互式方案)</p>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex flex-wrap border-b border-gray-200">
+                <button data-tab="dashboard" class="px-4 py-3 sm:px-6 font-medium text-sm sm:text-base border-b-2 tab-active">📈 价值总览</button>
+                <button data-tab="phase1" class="px-4 py-3 sm:px-6 font-medium text-sm sm:text-base border-b-2 tab-inactive">🎨 一：可视化协同优化</button>
+                <button data-tab="phase2" class="px-4 py-3 sm:px-6 font-medium text-sm sm:text-base border-b-2 tab-inactive">🤖 二：AI智能决策</button>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="p-6">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="content-section active">
+                    <div class="prose max-w-none">
+                        <h2 class="text-xl font-semibold text-gray-800">战略价值与创收效益</h2>
+                        <p class="text-gray-600">本方案的核心目标是突破成材率瓶颈，激活数据资产，实现显著的降本增效。通过先进的算法与AI技术，我们将沉睡的生产数据转化为驱动决策的强大引擎，为企业带来可量化的直接经济回报。</p>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-blue-50 p-6 rounded-xl border border-blue-200 text-center">
+                            <p class="text-lg font-medium text-blue-800">成材率每提升 1%</p>
+                            <p class="text-4xl font-bold text-blue-600 mt-2">¥ <span id="roi-value">0</span> 万</p>
+                            <p class="text-sm text-blue-700 mt-2">直接年收入增长</p>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-xl border border-green-200 text-center">
+                            <p class="text-lg font-medium text-green-800">余料价值最大化</p>
+                            <p class="text-4xl font-bold text-green-600 mt-2">~ <span id="scrap-value">15</span>%</p>
+                            <p class="text-sm text-green-700 mt-2">隐形成本降低</p>
+                        </div>
+                        <div class="bg-purple-50 p-6 rounded-xl border border-purple-200 text-center">
+                            <p class="text-lg font-medium text-purple-800">订单响应速度</p>
+                            <p class="text-4xl font-bold text-purple-600 mt-2">> <span id="speed-value">50</span>%</p>
+                            <p class="text-sm text-purple-700 mt-2">交付能力提升</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                        <h3 class="font-semibold text-lg text-gray-800">成材率提升潜力分析</h3>
+                        <div class="chart-container mt-4 mx-auto max-w-3xl">
+                            <canvas id="yieldRateChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Phase 1 Section -->
+                <section id="phase1" class="content-section">
+                    <div class="prose max-w-none">
+                        <h2 class="text-xl font-semibold text-gray-800">一：可视化协同优化平台</h2>
+                        <p class="text-gray-600">本平台旨在将复杂的工艺参数计算过程变得“看得见、摸得着、可交互”。您可以选择一个合同，动态修改工艺参数，实时观察其对分切方案和成材率的影响，体验前所未有的工艺“数字沙盘”。</p>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Controls Panel -->
+                        <div class="lg:col-span-1 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <h3 class="font-semibold text-lg text-gray-800 mb-4">优化控制台</h3>
+                            
+                            <div>
+                                <label for="contract-select" class="block text-sm font-medium text-gray-700">1. 选择演示合同</label>
+                                <select id="contract-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="C20250701-01">C20250701-01 (单合同)</option>
+                                    <option value="multi-contract">多合同拼剪</option>
+                                </select>
+                            </div>
+
+                            <div class="mt-4">
+                                <p class="block text-sm font-medium text-gray-700">2. 动态调整关键参数</p>
+                                <div class="mt-2 space-y-3">
+                                    <div>
+                                        <label for="param-cut-edge" class="block text-xs text-gray-600">切边量 (mm)</label>
+                                        <input type="number" id="param-cut-edge" value="15" class="param-input">
+                                    </div>
+                                    <div>
+                                        <label for="param-cut-head" class="block text-xs text-gray-600">切头量 (mm)</label>
+                                        <input type="number" id="param-cut-head" value="500" class="param-input">
+                                    </div>
+                                    <div>
+                                        <label for="param-cut-tail" class="block text-xs text-gray-600">切尾量 (mm)</label>
+                                        <input type="number" id="param-cut-tail" value="500" class="param-input">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                 <button id="recalculate-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+                                    🔄 重新计算
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Visualization Panel -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white p-4 rounded-xl ring-1 ring-gray-200">
+                                <h3 id="visual-title" class="font-semibold text-lg text-gray-800 mb-2">合同 C20250701-01 优化方案</h3>
+                                <p id="visual-subtitle" class="text-sm text-gray-500 mb-4">实时模拟生产流程与分切结果</p>
+
+                                <h4 class="font-medium text-gray-700 mb-3">工艺流程</h4>
+                                <div class="flex flex-wrap items-center justify-center text-sm text-gray-700">
+                                    <div class="flow-step">铸锭</div>
+                                    <div class="flow-arrow">→</div>
+                                    <div class="flow-step">热轧</div>
+                                    <div class="flow-arrow">→</div>
+                                    <div class="flow-step">粗轧</div>
+                                    <div class="flow-arrow">→</div>
+                                    <div class="flow-step">精轧</div>
+                                    <div class="flow-arrow">→</div>
+                                    <div class="flow-step">分切</div>
+                                </div>
+
+                                <h4 class="font-medium text-gray-700 mt-6 mb-3">分切方案与成材率</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center mb-4">
+                                    <div class="bg-gray-100 p-3 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-600">预估成材率</p>
+                                        <p id="yield-rate-display" class="text-2xl font-bold text-green-600">92.5%</p>
+                                    </div>
+                                    <div class="bg-gray-100 p-3 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-600">总余料重量</p>
+                                        <p id="scrap-weight-display" class="text-2xl font-bold text-amber-600">185 Kg</p>
+                                    </div>
+                                </div>
+                                <div class="chart-container w-full h-24 md:h-32">
+                                    <canvas id="slittingPlanChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Phase 2 Section -->
+                <section id="phase2" class="content-section">
+                    <div class="prose max-w-none">
+                         <h2 class="text-xl font-semibold text-gray-800">二：AI智能决策引擎</h2>
+                        <p class="text-gray-600">体验与“AI工艺大师”的对话。您可以提出目标、更改条件，AI将为您进行复杂的正向、逆向及模拟推演。这不仅是工具的进化，更是决策方式的革命。请从下面的建议问题开始，或输入您自己的问题。</p>
+                    </div>
+
+                    <div class="mt-6 bg-gray-50 rounded-xl border border-gray-200">
+                        <div id="ai-chat-window" class="p-4 h-96 overflow-y-auto flex flex-col space-y-4">
+                            <div class="ai-chat-bubble-agent p-3 rounded-lg max-w-lg">
+                                <p class="font-medium text-sm">AI工艺大师 (小智)</p>
+                                <p class="text-sm mt-1">您好！我是您的AI工艺大师。您可以向我咨询任何关于工艺优化的问题。我们可以从处理一个新合同开始，或者从一个成品目标反向推导生产方案。您想做什么？</p>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-gray-200">
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <button class="ai-suggestion-btn text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full hover:bg-blue-200">正向计算：处理合同 C20250701-01</button>
+                                <button class="ai-suggestion-btn text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full hover:bg-green-200">反推方案：成品1.5mm 6061-T6铝卷</button>
+                                <button class="ai-suggestion-btn text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full hover:bg-amber-200">模拟：如果切边量改为12mm会怎样？</button>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input id="ai-chat-input" type="text" placeholder="请在此输入您的问题..." class="flex-grow param-input">
+                                <button id="ai-chat-send" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">发送</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Chart & Data Setup ---
+            let yieldRateChart, slittingPlanChart;
+            const initialYieldData = {
+                current: 88.5,
+                optimized: 91.2,
+                potential: 92.5,
+                theoretical: 95.0
+            };
+            
+            const contractData = {
+                "C20250701-01": {
+                    params: { edge: 15, head: 500, tail: 500 },
+                    calculate() {
+                        const baseYield = 92.0;
+                        const edgeFactor = (15 - this.params.edge) * 0.1;
+                        const headFactor = (500 - this.params.head) / 1000 * 0.05;
+                        const tailFactor = (500 - this.params.tail) / 1000 * 0.05;
+                        const finalYield = baseYield + edgeFactor + headFactor + tailFactor;
+                        const scrapWeight = 2500 * (1 - finalYield / 100);
+                        return { 
+                            yield: finalYield.toFixed(1), 
+                            scrap: scrapWeight.toFixed(0),
+                            plan: [
+                                { label: '切头余料', value: this.params.head, color: '#fca5a5' },
+                                { label: '成品卷1', value: 3000, color: '#60a5fa' },
+                                { label: '成品卷2', value: 3000, color: '#60a5fa' },
+                                { label: '切尾余料', value: this.params.tail, color: '#fca5a5' },
+                                { label: '切边余料', value: this.params.edge * 10, color: '#fdba74' }
+                            ]
+                        };
+                    }
+                },
+                "multi-contract": {
+                    params: { edge: 18, head: 600, tail: 600 },
+                    calculate() {
+                         const baseYield = 90.5;
+                        const edgeFactor = (18 - this.params.edge) * 0.1;
+                        const headFactor = (600 - this.params.head) / 1000 * 0.05;
+                        const tailFactor = (600 - this.params.tail) / 1000 * 0.05;
+                        const finalYield = baseYield + edgeFactor + headFactor + tailFactor;
+                        const scrapWeight = 3000 * (1 - finalYield / 100);
+                        return { 
+                            yield: finalYield.toFixed(1), 
+                            scrap: scrapWeight.toFixed(0),
+                            plan: [
+                                { label: '切头余料', value: this.params.head, color: '#fca5a5' },
+                                { label: '合同A-卷1', value: 2500, color: '#60a5fa' },
+                                { label: '合同B-卷1', value: 1500, color: '#4ade80' },
+                                { label: '合同A-卷2', value: 2500, color: '#60a5fa' },
+                                { label: '可用余料', value: 400, color: '#a3e635' },
+                                { label: '切尾余料', value: this.params.tail, color: '#fca5a5' },
+                                { label: '切边余料', value: this.params.edge * 10, color: '#fdba74' },
+                            ]
+                        };
+                    }
+                }
+            };
+            
+            // --- Animated Counters ---
+            function animateValue(obj, start, end, duration) {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerHTML = Math.floor(progress * (end - start) + start);
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+
+            animateValue(document.getElementById('roi-value'), 0, 7500, 1500);
+            animateValue(document.getElementById('scrap-value'), 0, 15, 1500);
+            animateValue(document.getElementById('speed-value'), 0, 50, 1500);
+
+            // --- Tab Navigation ---
+            const tabs = document.querySelectorAll('[data-tab]');
+            const contentSections = document.querySelectorAll('.content-section');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.dataset.tab;
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active');
+                        t.classList.add('tab-inactive');
+                    });
+                    tab.classList.add('tab-active');
+                    tab.classList.remove('tab-inactive');
+
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === target) {
+                            section.classList.add('active');
+                        }
+                    });
+                    // Initialize charts if they are in the active tab and not yet created
+                    if(target === 'dashboard' && !yieldRateChart) createYieldRateChart();
+                    if(target === 'phase1' && !slittingPlanChart) {
+                        createSlittingPlanChart();
+                        updatePhase1Visuals();
+                    }
+                });
+            });
+
+            // --- Chart Creation ---
+            function createYieldRateChart() {
+                const ctx = document.getElementById('yieldRateChart').getContext('2d');
+                yieldRateChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['当前平均', '优化后', '方案潜力', '理论极限'],
+                        datasets: [{
+                            label: '成材率 (%)',
+                            data: [initialYieldData.current, initialYieldData.optimized, initialYieldData.potential, initialYieldData.theoretical],
+                            backgroundColor: ['#9ca3af', '#60a5fa', '#34d399', '#a78bfa'],
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: true }
+                        },
+                        scales: {
+                            y: { beginAtZero: false, min: 85, title: { display: true, text: '成材率 (%)' } },
+                            x: {}
+                        }
+                    }
+                });
+            }
+
+            function createSlittingPlanChart() {
+                const ctx = document.getElementById('slittingPlanChart').getContext('2d');
+                slittingPlanChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['母卷'],
+                        datasets: []
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true, title: { display: true, text: '长度/重量分布' } },
+                            y: { stacked: true }
+                        },
+                        plugins: {
+                            legend: { display: true, position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) { label += ': '; }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- Phase 1 Logic ---
+            const contractSelect = document.getElementById('contract-select');
+            const recalcBtn = document.getElementById('recalculate-btn');
+            
+            function updatePhase1Visuals() {
+                if (!slittingPlanChart) return;
+                
+                const selectedContractId = contractSelect.value;
+                const currentContract = contractData[selectedContractId];
+                
+                // Update params from inputs
+                currentContract.params.edge = parseFloat(document.getElementById('param-cut-edge').value);
+                currentContract.params.head = parseFloat(document.getElementById('param-cut-head').value);
+                currentContract.params.tail = parseFloat(document.getElementById('param-cut-tail').value);
+
+                const results = currentContract.calculate();
+
+                // Update displays
+                document.getElementById('visual-title').textContent = selectedContractId === 'multi-contract' 
+                    ? '多合同拼剪优化方案' 
+                    : `合同 ${selectedContractId} 优化方案`;
+                document.getElementById('yield-rate-display').textContent = `${results.yield}%`;
+                document.getElementById('scrap-weight-display').textContent = `${results.scrap} Kg`;
+
+                // Update chart
+                slittingPlanChart.data.datasets = results.plan.map(item => ({
+                    label: item.label,
+                    data: [item.value],
+                    backgroundColor: item.color,
+                    borderWidth: 1,
+                    borderColor: '#ffffff'
+                }));
+                slittingPlanChart.update();
+            }
+            
+            contractSelect.addEventListener('change', () => {
+                const selectedContract = contractData[contractSelect.value];
+                document.getElementById('param-cut-edge').value = selectedContract.params.edge;
+                document.getElementById('param-cut-head').value = selectedContract.params.head;
+                document.getElementById('param-cut-tail').value = selectedContract.params.tail;
+                updatePhase1Visuals();
+            });
+            recalcBtn.addEventListener('click', updatePhase1Visuals);
+
+            // --- Phase 2: AI Chat Logic ---
+            const chatWindow = document.getElementById('ai-chat-window');
+            const chatInput = document.getElementById('ai-chat-input');
+            const chatSendBtn = document.getElementById('ai-chat-send');
+            const suggestionBtns = document.querySelectorAll('.ai-suggestion-btn');
+
+            const aiResponses = {
+                "正向计算：处理合同 C20250701-01": `好的，收到合同 C20250701-01。正在解析...<br><br><strong>【初步结果】</strong><br><ul><li><strong>推荐产线:</strong> 3号冷轧线</li><li><strong>核心工序:</strong> 热轧 → 粗轧(2道次) → 精轧 → 连续退火 → 分切</li><li><strong>预计成材率:</strong> 92.5%</li><li><strong>关键参数摘要:</strong> 切边量: 15mm, 出口厚度: 2.0mm</li></ul><br>图形化方案已可在一平台查看。请问您需要完整的参数详情，还是对方案进行调整？`,
+                "反推方案：成品1.5mm 6061-T6铝卷": `收到您的成品需求。正在进行反向工艺路径规划，匹配产线能力和物料库存...<br><br><strong>【最优生产方案已生成】</strong><br><ul><li><strong>推荐产线:</strong> 2号高精度冷轧线 (当前负载较低且满足精度要求)</li><li><strong>推荐核心工序路径:</strong><br>1. 铸造: 选用7000mm的6061合金铸锭<br>2. 热轧: 出口厚度4.5mm<br>3. 粗轧 (3道次)<br>4. T6热处理<br>5. 精轧 (2道次)<br>6. 分切</li><li><strong>关键参数摘要:</strong><br>- 所需铸锭重量: 约6.2吨<br>- 初始切边量: 建议20mm<br>- 最终成品率预估: <strong>80.6%</strong></li></ul><br>这个方案是否满足您的要求？我可以为您展示每个工序的详细参数。`,
+                "模拟：如果切边量改为12mm会怎样？": `好的，收到您的请求：模拟切边量改为12mm。正在进行正向推演...<br><br><strong>【模拟结果】</strong><br><ul><li><strong>成材率变化:</strong> 从92.5% <strong>提升</strong> 至92.8%。</li><li><strong>原因分析:</strong> 切边重量损失减少。</li><li><strong>结论:</strong> 在设备精度允许的情况下，建议采纳。</li></ul><br>是否需要我为您将此变更应用到方案中？`,
+                "default": "很抱歉，作为一个演示AI，我还无法完全理解这个问题。请尝试点击上方的建议问题，体验核心功能。"
+            };
+
+            function addChatMessage(message, sender) {
+                const bubble = document.createElement('div');
+                bubble.classList.add('p-3', 'rounded-lg', 'max-w-lg', 'text-sm');
+                if (sender === 'user') {
+                    bubble.classList.add('ai-chat-bubble-user');
+                    bubble.innerHTML = `<p>${message}</p>`;
+                } else {
+                    bubble.classList.add('ai-chat-bubble-agent');
+                    bubble.innerHTML = `<p class="font-medium">AI工艺大师 (小智)</p><p class="mt-1">${message}</p>`;
+                }
+                chatWindow.appendChild(bubble);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function handleUserMessage(message) {
+                if (!message.trim()) return;
+                addChatMessage(message, 'user');
+                chatInput.value = '';
+
+                setTimeout(() => {
+                    const responseKey = Object.keys(aiResponses).find(k => message.includes(k.split('：')[1].trim()));
+                    const response = aiResponses[responseKey] || aiResponses.default;
+                    addChatMessage(response, 'agent');
+                }, 1000);
+            }
+
+            chatSendBtn.addEventListener('click', () => handleUserMessage(chatInput.value));
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleUserMessage(chatInput.value);
+            });
+            suggestionBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const message = btn.textContent;
+                    addChatMessage(message, 'user');
+                    setTimeout(() => {
+                        addChatMessage(aiResponses[message], 'agent');
+                    }, 1000);
+                });
+            });
+
+            // --- Initial Load ---
+            createYieldRateChart();
+
+        });
+    </script>
+</body>
 </html>
